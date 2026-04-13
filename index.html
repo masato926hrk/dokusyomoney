@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>読書貯金アプリ（GitHub版）</title>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <style>
+    /* 全体のスタイル */
+    body {
+      font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #4285f4;
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 28px;
+    }
+
+    h2 {
+      color: #0f9d58;
+      margin-top: 30px;
+      margin-bottom: 15px;
+      font-size: 22px;
+    }
+
+    /* ログインフォーム */
+    .login-form {
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+
+    /* 入力フォーム */
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+
+    button {
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #3367d6;
+    }
+
+    /* 本の一覧 */
+    .book-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .book-card {
+      background-color: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .book-cover {
+      height: 200px;
+      background-color: #f0f0f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .book-cover img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .book-info {
+      padding: 15px;
+      flex-grow: 1;
+    }
+
+    .book-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+      font-size: 16px;
+    }
+
+    .book-author, .book-publisher, .book-price, .book-date {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 3px;
+    }
+
+    .book-memo {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    /* メッセージ表示 */
+    .message {
+      padding: 10px 15px;
+      margin-bottom: 15px;
+      border-radius: 4px;
+    }
+
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    .warning {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+
+    /* ヘッダーとフッター */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .user-info {
+      font-size: 16px;
+    }
+
+    .logout-btn {
+      background-color: #ea4335;
+    }
+
+    .logout-btn:hover {
+      background-color: #d33426;
+    }
+
+    /* 読書貯金表示 */
+    .savings-info {
+      background-color: #e8f0fe;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .stats-container {
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+    }
+
+    .stats-item {
+      text-align: center;
+      padding: 0 10px;
+    }
+
+    .savings-amount, .book-count {
+      font-size: 24px;
+      font-weight: bold;
+      color: #4285f4;
+    }
+
+    /* ローディング表示 */
+    .loading {
+      display: none;
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .loading-spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #4285f4;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* レスポンシブデザイン */
+    @media (max-width: 600px) {
+      .book-list {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      }
+      .book-cover {
+        height: 150px;
+      }
+      h1 { font-size: 24px; }
+      h2 { font-size: 20px; }
+    }
+
+    /* ふりがな表示 */
+    ruby { ruby-align: center; }
+    rt { font-size: 10px; color: #666; }
+
+    /* 削除ボタンのスタイル */
+    .delete-btn {
+      background-color: #ea4335;
+      margin-top: 5px;
+      font-size: 14px;
+    }
+
+    .delete-btn:hover {
+      background-color: #d33426;
+    }
+
+    /* 操作ボタンのコンテナ */
+    .book-actions {
+      display: flex;
+      gap: 5px;
+      margin-top: 10px;
+    }
+
+    .book-actions button {
+      flex: 1;
+      padding: 8px;
+    }
+
+    /* 並び替えコントロール用のスタイル */
+    .sort-controls {
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+    }
+
+    .sort-controls label {
+      margin-right: 10px;
+      display: inline;
+    }
+
+    .sort-button {
+      background-color: #0f9d58;
+      margin-left: 10px;
+    }
+
+    .sort-button:hover {
+      background-color: #0b8043;
+    }
+
+    /* プルダウンメニュー用のスタイルを追加 */
+    select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+      box-sizing: border-box;
+      background-color: white;
+    }
+
+    /* モーダルダイアログのスタイル */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      max-width: 80%;
+      text-align: center;
+      max-height: 90vh; 
+      overflow-y: auto; 
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      color: #4285f4;
+    }
+
+    .modal-message {
+      font-size: 18px;
+      margin-bottom: 20px;
+    }
+
+    .modal-button {
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .modal-button:hover {
+      background-color: #3367d6;
+    }
+
+    /* カメラスキャナー用のスタイル */
+    #reader {
+      width: 100%;
+      background-color: black;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    #reader video {
+      object-fit: cover;
+      width: 100% !important;
+      height: auto !important;
+    }
+
+    /* 印刷用スタイル */
+    @media print {
+      #login-section,
+      #register-book-section,
+      #manual-register-modal,
+      #scanner-modal,
+      .header button,
+      .book-actions,
+      .sort-controls,
+      .print-button-container {
+        display: none !important;
+      }
+      body { background-color: #fff; }
+      .container { padding: 0; }
+      @page { margin: 1cm; }
+      .savings-info {
+        box-shadow: none;
+        border: 1px solid #eee;
+        padding: 10px;
+      }
+      .book-card {
+        box-shadow: none;
+        border: 1px solid #eee;
+        margin-bottom: 10px;
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+      .book-cover { height: 150px; }
+    }
+  </style>
+
+  <script>
+    // ==========================================
+    // 【重要】GASで発行したWebアプリのURLをここに貼り付けてください
+    // ==========================================
+    const API_URL = 'https://script.google.com/macros/s/AKfycby2ZZs1b69j3bVs6dVbU1KYGFUwcVd5YV4UjOB8XNwm_VJOqDVR0wlOZMDh80t95Hii0w/exec';
+
+    // グローバル変数
+    let userId = null;
+    let username = null;
+    let currentSortOrder = 'desc'; 
+    let usernamesLoaded = false;
+
+    // ==========================================
+    // API通信用の共通関数（google.script.runの代わり）
+    // ==========================================
+    function callAPI(action, params = {}) {
+      return new Promise((resolve, reject) => {
+        const payload = { action: action, ...params };
+
+        fetch(API_URL, {
+          method: 'POST',
+          // CORS対策のため text/plain を使用（GAS側は問題なくJSONとして処理します）
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify(payload)
+        })
+        .then(response => {
+          if (!response.ok) throw new Error('ネットワークエラー: ' + response.status);
+          return response.json();
+        })
+        .then(data => resolve(data))
+        .catch(error => {
+          console.error('API通信エラー:', error);
+          reject(error);
+        });
+      });
+    }
+
+    // ページ読み込み時に実行
+    window.onload = function() {
+      checkLoginStatus();
+      console.log('ページが読み込まれました（API通信版）');
+
+      const usernameSelect = document.getElementById('username');
+      usernameSelect.addEventListener('focus', function() {
+        if (!usernamesLoaded) {
+          loadUsernames();
+        }
+      });
+    };
+
+    // ユーザー名のリストを取得
+    function loadUsernames() {
+      if (usernamesLoaded) return;
+
+      const select = document.getElementById('username');
+      select.innerHTML = '<option value="">読み込み中...</option>';
+      showLoading('login-section');
+
+      callAPI('getUsernames')
+        .then(result => {
+          hideLoading('login-section');
+          if (result.success) {
+            select.innerHTML = '<option value="">-- 名前をえらんでください --</option>';
+            result.usernames.forEach(name => {
+              const option = document.createElement('option');
+              option.value = name;
+              option.textContent = name;
+              select.appendChild(option);
+            });
+            usernamesLoaded = true;
+          } else {
+            select.innerHTML = '<option value="">-- エラーが発生しました --</option>';
+            document.getElementById('login-message').innerHTML = `<div class="message error">${result.message}</div>`;
+          }
+        })
+        .catch(error => {
+          hideLoading('login-section');
+          select.innerHTML = '<option value="">-- エラーが発生しました --</option>';
+          document.getElementById('login-message').innerHTML = `<div class="message error">エラーが発生しました: ${error.message}</div>`;
+        });
+    }
+
+    // ログイン状態を確認
+    function checkLoginStatus() {
+      userId = sessionStorage.getItem('userId');
+      username = sessionStorage.getItem('username');
+      if (userId && username) {
+        showHome();
+      } else {
+        showLogin();
+      }
+    }
+
+    // ログイン画面を表示
+    function showLogin() {
+      document.getElementById('login-section').style.display = 'block';
+      document.getElementById('home-section').style.display = 'none';
+      document.getElementById('book-list').innerHTML = ''; 
+    }
+
+    // ログイン処理
+    function login() {
+      const inputUsername = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      document.getElementById('login-message').innerHTML = '';
+      showLoading('login-section');
+
+      callAPI('authenticateUser', { username: inputUsername, password: password })
+        .then(result => {
+          hideLoading('login-section');
+          if (result.success) {
+            userId = result.userId;
+            username = result.username;
+            sessionStorage.setItem('userId', userId);
+            sessionStorage.setItem('username', username);
+            showHome();
+          } else {
+            document.getElementById('login-message').innerHTML = `<div class="message error">${result.message}</div>`;
+          }
+        })
+        .catch(error => {
+          hideLoading('login-section');
+          document.getElementById('login-message').innerHTML = `<div class="message error">エラーが発生しました: ${error.message}</div>`;
+        });
+    }
+
+    // ログアウト処理
+    function logout() {
+      sessionStorage.removeItem('userId');
+      sessionStorage.removeItem('username');
+      userId = null;
+      username = null;
+      showLogin();
+    }
+
+    // 並び替え順を変更
+    function changeSortOrder() {
+      currentSortOrder = currentSortOrder === 'desc' ? 'asc' : 'desc';
+      updateSortButtonText();
+      loadBooks();
+    }
+
+    function updateSortButtonText() {
+      const sortButton = document.getElementById('sort-button');
+      sortButton.textContent = currentSortOrder === 'desc' ? '新しい順' : '古い順';
+    }
+
+    // 本のリストを読み込む
+    function loadBooks() {
+      document.getElementById('book-list').innerHTML = '';
+      showLoading('home-section');
+
+      callAPI('getUserBooks', { userId: userId })
+        .then(result => {
+          hideLoading('home-section');
+          if (result.success) {
+            const books = result.books;
+            if (books.length === 0) {
+              document.getElementById('book-list').innerHTML = '<div class="message warning">まだ本が登録されていません。</div>';
+            } else {
+              books.sort((a, b) => {
+                const idA = parseInt(a.id);
+                const idB = parseInt(b.id);
+                return currentSortOrder === 'asc' ? idA - idB : idB - idA;
+              });
+
+              let bookListHtml = '';
+              books.forEach(book => {
+                bookListHtml += createBookCardHtml(book);
+              });
+              document.getElementById('book-list').innerHTML = bookListHtml;
+            }
+          } else {
+            document.getElementById('book-list').innerHTML = `<div class="message error">エラーが発生しました: ${result.message}</div>`;
+          }
+        })
+        .catch(error => {
+          hideLoading('home-section');
+          document.getElementById('book-list').innerHTML = `<div class="message error">エラーが発生しました: ${error.message}</div>`;
+        });
+    }
+
+    // ホーム画面を表示
+    function showHome() {
+      document.getElementById('login-section').style.display = 'none';
+      document.getElementById('home-section').style.display = 'block';
+      document.getElementById('user-info').textContent = 'こんにちは、' + username + 'さん！';
+      updateSortButtonText();
+      loadBooks();
+      loadSavings();
+    }
+
+    // 本のカードを作成
+    function createBookCardHtml(book) {
+      const coverImage = book.coverUrl && book.coverUrl.trim() !== '' ?
+        `<img src="${book.coverUrl}" alt="${book.title}">` :
+        '<div class="no-image">書影がありません</div>';
+
+      let formattedMemo = '';
+      if (book.memo) {
+        formattedMemo = 'メモ：' + book.memo.replace(/\n/g, '<br>');
+      }
+
+      return `
+        <div class="book-card" data-id="${book.id}">
+          <div class="book-cover">${coverImage}</div>
+          <div class="book-info">
+            <div class="book-title">${book.title || '不明'}</div>
+            <div class="book-author">著者： ${book.author ? book.author.replace(/,/g, ' ') : '不明'}</div>
+            <div class="book-publisher">出版社： ${book.publisher || '不明'}</div>
+            <div class="book-price">価格： ${book.price || 0} 円</div>
+            <div class="book-date">登録日： ${book.registrationDate || '不明'}</div>
+            <div class="book-memo">${formattedMemo}</div>
+            <div class="book-actions">
+              <button onclick="editMemo(${book.id})">メモを書く</button>
+              <button onclick="deleteBook(${book.id})" class="delete-btn">消す</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 本を削除
+    function deleteBook(recordId) {
+      showConfirmModal('この本を削除してもよろしいですか？この操作は元に戻せません。', 'さくじょかくにん', () => {
+        showLoading('home-section');
+        callAPI('deleteBook', { recordId: recordId })
+          .then(result => {
+            hideLoading('home-section');
+            if (result.success) {
+              showModal(result.message, '削除完了');
+              loadBooks();
+              loadSavings();
+            } else {
+              showModal(result.message);
+            }
+          })
+          .catch(error => {
+            hideLoading('home-section');
+            showModal('エラーが発生しました: ' + error.message);
+          });
+      });
+    }
+
+    // 読書貯金額を読み込む
+    function loadSavings() {
+      callAPI('getUserBooks', { userId: userId })
+        .then(result => {
+          if (result.success) {
+            document.getElementById('savings-amount').textContent = result.totalPrice + '円';
+            document.getElementById('book-count').textContent = result.count + '冊';
+          } else {
+            document.getElementById('savings-amount').textContent = 'エラー';
+            document.getElementById('book-count').textContent = 'エラー';
+          }
+        })
+        .catch(error => {
+          document.getElementById('savings-amount').textContent = 'エラー';
+          document.getElementById('book-count').textContent = 'エラー';
+        });
+    }
+
+    // ISBNで本の情報を取得
+    function getBookByISBN() {
+      const isbn = document.getElementById('isbn').value;
+      const registerButton = document.getElementById('register-book-btn');
+
+      if (!isbn) {
+        showModal('ISBNを入力してください。');
+        return;
+      }
+
+      registerButton.disabled = true;
+      registerButton.textContent = 'しょり中...';
+      showLoading('home-section');
+
+      callAPI('getBookInfo', { isbn: isbn })
+        .then(result => {
+          hideLoading('home-section');
+          registerButton.disabled = false;
+          registerButton.innerHTML = '<ruby>本<rt>ほん</rt></ruby>を<ruby>登録<rt>とうろく</rt></ruby>';
+
+          if (result.success) {
+            if (result.isDuplicate) {
+              showConfirmModal('この本はすでに登録されています。もう一度登録しますか？', '確認', () => {
+                confirmMemoInput(result.book);
+              });
+            } else {
+              confirmMemoInput(result.book);
+            }
+          } else {
+            showModal(result.message);
+          }
+        })
+        .catch(error => {
+          hideLoading('home-section');
+          registerButton.disabled = false;
+          registerButton.innerHTML = '<ruby>本<rt>ほん</rt></ruby>を<ruby>登録<rt>とうろく</rt></ruby>';
+          showModal('エラーが発生しました: ' + error.message);
+        });
+    }
+
+    // メモ入力の確認
+    function confirmMemoInput(bookInfo) {
+      showConfirmModal('本の情報を登録した後、メモを入力しますか？', 'メモ入力確認', () => {
+        showPromptModalForNewBook('本のメモを入力してください', '', 'メモを書く', memo => {
+          registerBookWithMemo(bookInfo, memo);
+        });
+      }, () => {
+        registerBookWithMemo(bookInfo, '');
+      });
+    }
+
+    // 手動登録モーダルを表示・非表示
+    function showManualRegisterModal() {
+        document.getElementById('manual-title').value = '';
+        document.getElementById('manual-author').value = '';
+        document.getElementById('manual-publisher').value = '';
+        document.getElementById('manual-price').value = '2000';
+        document.getElementById('manual-memo').value = '';
+        document.getElementById('manual-register-modal').style.display = 'flex';
+    }
+
+    function hideManualRegisterModal() {
+        document.getElementById('manual-register-modal').style.display = 'none';
+    }
+
+    function manualRegisterBook() {
+        const title = document.getElementById('manual-title').value;
+        const author = document.getElementById('manual-author').value;
+        const publisher = document.getElementById('manual-publisher').value;
+        const price = document.getElementById('manual-price').value;
+
+        if (!title || !price) {
+            showModal('タイトルと価格は必ず入力してください。');
+            return;
+        }
+
+        const bookInfo = {
+            isbn: '', 
+            title: title,
+            author: author || '不明',
+            publisher: publisher || '不明',
+            price: Number(price) || 2000,
+            coverUrl: '' 
+        };
+
+        hideManualRegisterModal();
+        confirmMemoInput(bookInfo);
+    }
+    
+    function validatePrice(input) {
+        input.value = input.value.replace(/[^0-9]/g, '');
+    }
+
+    // 本をメモ付きで登録
+    function registerBookWithMemo(bookInfo, memo) {
+      const registerButton = document.getElementById('register-book-btn');
+      registerButton.disabled = true;
+      showLoading('home-section');
+
+      callAPI('registerBook', { userId: userId, bookInfo: bookInfo, memo: memo })
+        .then(result => {
+          hideLoading('home-section');
+          registerButton.disabled = false;
+
+          if (result.success) {
+            showModal(result.message, '登録完了');
+            document.getElementById('isbn').value = '';
+            loadBooks();
+            loadSavings();
+          } else {
+            showModal(result.message);
+          }
+        })
+        .catch(error => {
+          hideLoading('home-section');
+          registerButton.disabled = false;
+          showModal('エラーが発生しました: ' + error.message);
+        });
+    }
+
+    function registerBook(bookInfo) {
+      confirmMemoInput(bookInfo);
+    }
+
+    // メモを編集（API版ではDOMから直接取得して更新のみ行う）
+    function editMemo(recordId) {
+      const bookElement = document.querySelector(`.book-card[data-id="${recordId}"]`);
+      let currentMemo = '';
+
+      if (bookElement) {
+        const memoElement = bookElement.querySelector('.book-memo');
+        if (memoElement) {
+          currentMemo = memoElement.textContent.replace('メモ：', '').trim();
+        }
+      }
+
+      showPromptModal('メモを編集してください（えらんだ理由や読んだ感想など）', currentMemo, 'メモ編集', newMemo => {
+        if (newMemo !== null) {
+          showLoading('home-section');
+          callAPI('updateBookMemo', { recordId: recordId, newMemo: newMemo })
+            .then(updateResult => {
+              hideLoading('home-section');
+              if (updateResult.success) {
+                showModal(updateResult.message, 'メモ更新完了');
+                loadBooks();
+              } else {
+                showModal(updateResult.message);
+              }
+            })
+            .catch(error => {
+              hideLoading('home-section');
+              showModal('エラーが発生しました: ' + error.message);
+            });
+        }
+      });
+    }
+
+    // 各種UIヘルパー関数
+    function showLoading(sectionId) { document.getElementById(sectionId).querySelector('.loading').style.display = 'block'; }
+    function hideLoading(sectionId) { document.getElementById(sectionId).querySelector('.loading').style.display = 'none'; }
+
+    function showModal(message, title = 'おしらせ', callback = null) {
+      const existingModal = document.querySelector('.modal-overlay');
+      if (existingModal) document.body.removeChild(existingModal);
+
+      const modalOverlay = document.createElement('div');
+      modalOverlay.className = 'modal-overlay';
+      modalOverlay.innerHTML = `
+        <div class="modal-content">
+          <div class="modal-title">${title}</div>
+          <div class="modal-message">${message}</div>
+          <button class="modal-button" id="modal-ok-btn">OK</button>
+        </div>
+      `;
+      document.body.appendChild(modalOverlay);
+      document.getElementById('modal-ok-btn').onclick = () => {
+        document.body.removeChild(modalOverlay);
+        if (callback) callback(true);
+      };
+    }
+
+    function showConfirmModal(message, title = 'かくにん', yesCallback, noCallback = null) {
+      const existingModal = document.querySelector('.modal-overlay');
+      if (existingModal) document.body.removeChild(existingModal);
+
+      const modalOverlay = document.createElement('div');
+      modalOverlay.className = 'modal-overlay';
+      modalOverlay.innerHTML = `
+        <div class="modal-content">
+          <div class="modal-title">${title}</div>
+          <div class="modal-message">${message}</div>
+          <div class="modal-button-container" style="display: flex; justify-content: space-around; margin-top: 20px;">
+            <button class="modal-button" id="modal-yes-btn" style="background-color: #4285f4;">はい</button>
+            <button class="modal-button" id="modal-no-btn" style="background-color: #ea4335;">いいえ</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modalOverlay);
+      document.getElementById('modal-yes-btn').onclick = () => {
+        document.body.removeChild(modalOverlay);
+        if (yesCallback) yesCallback();
+      };
+      document.getElementById('modal-no-btn').onclick = () => {
+        document.body.removeChild(modalOverlay);
+        if (noCallback) noCallback();
+      };
+    }
+
+    function showPromptModal(message, defaultValue = '', title = 'にゅうりょく', callback) {
+      const existingModal = document.querySelector('.modal-overlay');
+      if (existingModal) document.body.removeChild(existingModal);
+
+      const modalOverlay = document.createElement('div');
+      modalOverlay.className = 'modal-overlay';
+      modalOverlay.innerHTML = `
+        <div class="modal-content">
+          <div class="modal-title">${title}</div>
+          <div class="modal-message">${message}</div>
+          <div style="margin: 15px 0;">
+            <textarea id="prompt-input" style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ddd; font-size: 16px; min-height: 80px; box-sizing: border-box;"></textarea>
+          </div>
+          <div class="modal-button-container" style="display: flex; justify-content: space-around; margin-top: 15px;">
+            <button class="modal-button" id="prompt-ok-btn">OK</button>
+            <button class="modal-button" id="prompt-cancel-btn" style="background-color: #ea4335;">キャンセル</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modalOverlay);
+      document.getElementById('prompt-input').value = defaultValue;
+      
+      document.getElementById('prompt-ok-btn').onclick = () => {
+        const val = document.getElementById('prompt-input').value;
+        document.body.removeChild(modalOverlay);
+        if (callback) callback(val);
+      };
+      document.getElementById('prompt-cancel-btn').onclick = () => {
+        document.body.removeChild(modalOverlay);
+        if (callback) callback(null);
+      };
+      setTimeout(() => document.getElementById('prompt-input').focus(), 100);
+    }
+
+    function showPromptModalForNewBook(message, defaultValue = '', title = 'にゅうりょく', callback) {
+      const existingModal = document.querySelector('.modal-overlay');
+      if (existingModal) document.body.removeChild(existingModal);
+
+      const modalOverlay = document.createElement('div');
+      modalOverlay.className = 'modal-overlay';
+      modalOverlay.innerHTML = `
+        <div class="modal-content">
+          <div class="modal-title">${title}</div>
+          <div class="modal-message">${message}</div>
+          <div style="margin: 15px 0;">
+            <textarea id="prompt-new-input" style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ddd; font-size: 16px; min-height: 80px; box-sizing: border-box;"></textarea>
+          </div>
+          <div class="modal-button-container" style="display: flex; justify-content: center; margin-top: 15px;">
+            <button class="modal-button" id="prompt-new-ok-btn">OK</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modalOverlay);
+      document.getElementById('prompt-new-input').value = defaultValue;
+      
+      document.getElementById('prompt-new-ok-btn').onclick = () => {
+        const val = document.getElementById('prompt-new-input').value;
+        document.body.removeChild(modalOverlay);
+        if (callback) callback(val);
+      };
+      setTimeout(() => document.getElementById('prompt-new-input').focus(), 100);
+    }
+
+    window.alert = message => showModal(message);
+    window.confirm = message => { let res = false; showConfirmModal(message, 'かくにん', () => res = true); return res; };
+    window.prompt = (message, def) => { let res = null; showPromptModal(message, def, 'にゅうりょく', val => res = val); return res; };
+    function printPage() { window.print(); }
+
+    // ==========================================
+    // カメラスキャナー制御ロジック
+    // ==========================================
+    let html5QrCode = null;
+    let isScannerProcessing = false;
+
+    function ensureScannerModalExists() {
+      if (document.getElementById('scanner-modal')) return;
+      const modalDiv = document.createElement('div');
+      modalDiv.id = 'scanner-modal';
+      modalDiv.className = 'modal-overlay';
+      modalDiv.style.display = 'none';
+      modalDiv.innerHTML = `
+        <div class="modal-content" style="max-width: 500px; width: 95%;">
+          <div class="modal-title">バーコードを読み取る</div>
+          <p style="font-size: 14px; color: #666;">本の裏の、上段のバーコード（978から始まるもの）をカメラに合わせてください。</p>
+          <div id="reader"></div>
+          <div id="scan-message" style="margin-bottom: 10px; height: 20px; color: red; font-size: 12px; min-height: 20px;"></div>
+          <div class="modal-button-container" style="margin-top: 10px;">
+            <button onclick="stopScanner()" class="modal-button" style="background-color: #ea4335;">閉じる</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modalDiv);
+    }
+
+    function startScanner() {
+      if (isScannerProcessing) return;
+      isScannerProcessing = true;
+      ensureScannerModalExists();
+
+      const modal = document.getElementById('scanner-modal');
+      modal.style.display = 'flex';
+      document.getElementById('scan-message').textContent = 'カメラを起動中...';
+
+      if (typeof Html5Qrcode === 'undefined') {
+        alert('カメラ機能の読み込みに失敗しました。');
+        hideScannerModal();
+        return;
+      }
+
+      if (html5QrCode) {
+        try { html5QrCode.clear(); } catch(e) {}
+        html5QrCode = null;
+      }
+      const readerElement = document.getElementById('reader');
+      if(readerElement) readerElement.innerHTML = '';
+
+      try {
+        html5QrCode = new Html5Qrcode("reader"); 
+      } catch (e) {
+        console.error("Instance creation failed", e);
+        isScannerProcessing = false;
+        return;
+      }
+      
+      const config = { fps: 10, qrbox: { width: 250, height: 150 }, aspectRatio: 1.0 };
+
+      html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, () => {})
+      .then(() => {
+        document.getElementById('scan-message').textContent = '読み取り中...';
+        isScannerProcessing = false; 
+      }).catch(err => {
+        document.getElementById('scan-message').textContent = '起動エラー';
+        alert('カメラを起動できませんでした。ブラウザの許可設定を確認してください。');
+        forceStopScanner(); 
+      });
+    }
+
+    function onScanSuccess(decodedText) {
+      if (decodedText.startsWith('978') || decodedText.startsWith('979')) {
+        if (navigator.vibrate) navigator.vibrate(200);
+        stopScanner().then(() => {
+            document.getElementById('isbn').value = decodedText;
+            getBookByISBN();
+        });
+      } else {
+        document.getElementById('scan-message').textContent = 'ISBNではありません: ' + decodedText;
+      }
+    }
+
+    function stopScanner() {
+      isScannerProcessing = false;
+      if (html5QrCode) {
+        return html5QrCode.stop().then(() => html5QrCode.clear()).then(() => {
+          html5QrCode = null;
+          hideScannerModal();
+          const reader = document.getElementById('reader');
+          if(reader) reader.innerHTML = ''; 
+        }).catch(() => forceStopScanner());
+      } else {
+        hideScannerModal();
+        return Promise.resolve();
+      }
+    }
+
+    function forceStopScanner() {
+      try { if (html5QrCode) html5QrCode.clear(); } catch(e) {}
+      html5QrCode = null;
+      isScannerProcessing = false;
+      hideScannerModal();
+      const reader = document.getElementById('reader');
+      if(reader) reader.innerHTML = '';
+    }
+
+    function hideScannerModal() {
+      const modal = document.getElementById('scanner-modal');
+      if(modal) modal.style.display = 'none';
+      const msg = document.getElementById('scan-message');
+      if(msg) msg.textContent = '';
+      isScannerProcessing = false;
+    }
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h1><ruby>読書<rt>どくしょ</rt></ruby><ruby>貯金<rt>ちょきん</rt></ruby>アプリ</h1>
+
+    <div id="login-section" class="login-form">
+      <h2><ruby>ログイン<rt>ろぐいん</rt></ruby></h2>
+      <div id="login-message"></div>
+      <div class="form-group">
+        <label for="username"><ruby>名前<rt>なまえ</rt></ruby> ： </label>
+        <select id="username"><option value=""> -- 名前をえらんでください-- </option></select>
+      </div>
+      <div class="form-group">
+        <label for="password"><ruby>パスワード<rt>ぱすわーど</rt></ruby> ： </label>
+        <input type="password" id="password" placeholder="パスワードを入力">
+      </div>
+      <button onclick="login()"><ruby>ログイン<rt>ろぐいん</rt></ruby></button>
+      <div class="loading">
+        <div class="loading-spinner"></div>
+        <p>読み込み中...</p>
+      </div>
+    </div>
+
+    <div id="home-section" style="display: none;">
+      <div class="header">
+        <div id="user-info" class="user-info"></div>
+        <button onclick="logout()" class="logout-btn"><ruby>ログアウト<rt>ろぐあうと</rt></ruby></button>
+      </div>
+
+      <div class="savings-info">
+        <div class="stats-container">
+          <div class="stats-item">
+            <p><ruby>読書<rt>どくしょ</rt></ruby><ruby>貯金<rt>ちょきん</rt></ruby> ： <span id="savings-amount" class="savings-amount">0円</span></p>
+          </div>
+          <div class="stats-item">
+            <p><ruby>登録<rt>とうろく</rt></ruby><ruby>冊数<rt>さつすう</rt></ruby> ： <span id="book-count" class="book-count">0冊</span></p>
+          </div>
+        </div>
+      </div>
+      
+      <div id="register-book-section">
+        <h2><ruby>本<rt>ほん</rt></ruby>を<ruby>登録<rt>とうろく</rt></ruby>する</h2>
+        <div class="form-group" style="display: flex; gap: 10px; align-items: flex-start;">
+          <div style="flex-grow: 1;">
+            <label for="isbn">ISBNコード：</label>
+            <input type="text" id="isbn" placeholder="9784XXXXXXXXX" pattern="[0-9X-]+" inputmode="numeric" onkeypress="if(event.key === 'Enter') getBookByISBN()">
+            
+            <div style="display: flex; gap: 10px; margin-top: 5px;">
+              <button onclick="startScanner()" style="background-color: #f4b400; flex: 1; display: flex; align-items: center; justify-content: center;">
+                <span style="margin-right: 5px;">📷</span> カメラでスキャン
+              </button>
+              <button id="register-book-btn" onclick="getBookByISBN()" style="flex: 2;"><ruby>本<rt>ほん</rt></ruby>を<ruby>登録<rt>とうろく</rt></ruby></button>
+            </div>
+          </div>
+        </div>
+        <div style="text-align: right; margin-top: -10px;">
+           <button onclick="showManualRegisterModal()" style="background-color: #888; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 14px;">ISBNがない本を登録</button>
+        </div>
+      </div>
+
+      <h2><ruby>登録<rt>とうろく</rt></ruby>した<ruby>本<rt>ほん</rt></ruby></h2>
+      <div class="sort-controls">
+        <label>並び替え：</label>
+        <button id="sort-button" onclick="changeSortOrder()" class="sort-button">新しい順（ID降順）</button>
+      </div>
+
+      <div id="book-list" class="book-list"></div>
+
+      <div class="loading">
+        <div class="loading-spinner"></div>
+        <p>読み込み中...</p>
+      </div>
+
+      <div class="print-button-container" style="text-align: center; margin-top: 30px;">
+        <button onclick="printPage()">このページを印刷</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="manual-register-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-title"><ruby>手動<rt>しゅどう</rt></ruby><ruby>登録<rt>とうろく</rt></ruby></div>
+      <div class="form-group">
+        <label for="manual-title">タイトル <span style="color: red;">*</span>：</label>
+        <input type="text" id="manual-title" placeholder="ひみつシリーズ 恐竜のひみつ">
+      </div>
+      <div class="form-group">
+        <label for="manual-author">著者：</label>
+        <input type="text" id="manual-author" placeholder="著者名">
+      </div>
+      <div class="form-group">
+        <label for="manual-publisher">出版社：</label>
+        <input type="text" id="manual-publisher" placeholder="学研">
+      </div>
+      <div class="form-group">
+        <label for="manual-price">価格 <span style="color: red;">*</span>：</label>
+        <input type="text" id="manual-price" placeholder="2000" oninput="validatePrice(this)">
+      </div>
+      <div class="form-group">
+        <label for="manual-memo">メモ：</label>
+        <textarea id="manual-memo" placeholder="読んだ感想や選んだ理由など"></textarea>
+      </div>
+      <div class="modal-button-container" style="display: flex; justify-content: space-around; margin-top: 20px;">
+          <button onclick="manualRegisterBook()" class="modal-button" style="flex: 1; margin-right: 10px;">登録</button>
+          <button onclick="hideManualRegisterModal()" class="modal-button" style="flex: 1; background-color: #ea4335;">キャンセル</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
