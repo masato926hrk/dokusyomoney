@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>読書貯金アプリ（４の２）</title>
+  <title>読書貯金アプリ（GitHub版）</title>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
     /* 全体のスタイル */
@@ -395,7 +395,7 @@
     // ==========================================
     // 【重要】GASで発行したWebアプリのURLをここに貼り付けてください
     // ==========================================
-    const API_URL = 'https://script.google.com/macros/s/AKfycby2ZZs1b69j3bVs6dVbU1KYGFUwcVd5YV4UjOB8XNwm_VJOqDVR0wlOZMDh80t95Hii0w/exec';
+    const API_URL = 'ここにコピーしたWebアプリのURLを貼り付けてください';
 
     // グローバル変数
     let userId = null;
@@ -450,22 +450,21 @@
       showLoading('login-section');
 
       callAPI('getUsernames')
-  .then(result => {
-    hideLoading('login-section');
-    if (result.success) {
-      select.innerHTML = '<option value="">-- 番号を選んでください --</option>';
-      result.usernames.forEach(item => {
-        const option = document.createElement('option');
-        
-        // 「1. 仙台 太郎」から名前の部分だけを取り出す
-        const namePart = item.split('. ')[1] || item;
-        
-        option.value = namePart;   // GASに送る値（名前）
-        option.textContent = item; // 画面に表示する文字（1. 仙台 太郎）
-        select.appendChild(option);
-      });
-      usernamesLoaded = true;
-    } else {
+        .then(result => {
+          hideLoading('login-section');
+          if (result.success) {
+            select.innerHTML = '<option value="">-- 番号を選んでください --</option>';
+            result.usernames.forEach(item => {
+              const option = document.createElement('option');
+              // GAS側で "1. 仙台 太郎" の形式で送られてきている前提
+              const namePart = item.split('. ')[1] || item;
+              
+              option.value = namePart;   // GASに送る値（名前）
+              option.textContent = item; // 画面に表示する文字（1. 仙台 太郎）
+              select.appendChild(option);
+            });
+            usernamesLoaded = true;
+          } else {
             select.innerHTML = '<option value="">-- エラーが発生しました --</option>';
             document.getElementById('login-message').innerHTML = `<div class="message error">${result.message}</div>`;
           }
@@ -939,6 +938,7 @@
     // ==========================================
     let html5QrCode = null;
     let isScannerProcessing = false;
+    let currentFacingMode = "environment"; // 背面カメラをデフォルトに設定
 
     function ensureScannerModalExists() {
       if (document.getElementById('scanner-modal')) return;
@@ -952,7 +952,8 @@
           <p style="font-size: 14px; color: #666;">本の裏の、上段のバーコード（978から始まるもの）をカメラに合わせてください。</p>
           <div id="reader"></div>
           <div id="scan-message" style="margin-bottom: 10px; height: 20px; color: red; font-size: 12px; min-height: 20px;"></div>
-          <div class="modal-button-container" style="margin-top: 10px;">
+          <div class="modal-button-container" style="display: flex; justify-content: space-around; margin-top: 10px;">
+            <button onclick="switchCamera()" class="modal-button" style="background-color: #f4b400;">🔄 カメラ切替</button>
             <button onclick="stopScanner()" class="modal-button" style="background-color: #ea4335;">閉じる</button>
           </div>
         </div>
@@ -975,6 +976,11 @@
         return;
       }
 
+      executeScannerStart();
+    }
+
+    // カメラの起動処理を独立（切り替え時に再利用するため）
+    function executeScannerStart() {
       if (html5QrCode) {
         try { html5QrCode.clear(); } catch(e) {}
         html5QrCode = null;
@@ -992,7 +998,7 @@
       
       const config = { fps: 10, qrbox: { width: 250, height: 150 }, aspectRatio: 1.0 };
 
-      html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, () => {})
+      html5QrCode.start({ facingMode: currentFacingMode }, config, onScanSuccess, () => {})
       .then(() => {
         document.getElementById('scan-message').textContent = '読み取り中...';
         isScannerProcessing = false; 
@@ -1000,6 +1006,21 @@
         document.getElementById('scan-message').textContent = '起動エラー';
         alert('カメラを起動できませんでした。ブラウザの許可設定を確認してください。');
         forceStopScanner(); 
+      });
+    }
+
+    // カメラ切り替え処理
+    function switchCamera() {
+      if (!html5QrCode) return;
+      document.getElementById('scan-message').textContent = 'カメラを切り替え中...';
+      
+      // 現在のカメラを停止して、向きを反転させてから再起動する
+      html5QrCode.stop().then(() => {
+        currentFacingMode = (currentFacingMode === "environment") ? "user" : "environment";
+        executeScannerStart();
+      }).catch(err => {
+        console.error("Camera switch failed", err);
+        document.getElementById('scan-message').textContent = '切り替えに失敗しました';
       });
     }
 
@@ -1053,17 +1074,17 @@
     <h1><ruby>読書<rt>どくしょ</rt></ruby><ruby>貯金<rt>ちょきん</rt></ruby>アプリ</h1>
 
     <div id="login-section" class="login-form">
-      <h2><ruby>ログイン</ruby></h2>
+      <h2><ruby>ログイン<rt>ろぐいん</rt></ruby></h2>
       <div id="login-message"></div>
       <div class="form-group">
-      <label for="username"><ruby>出席番号と名前</ruby> ： </label>
-        <select id="username"><option value=""> -- 名前をえらんでください-- </option></select>
+        <label for="username"><ruby>出席番号<rt>しゅっせきばんごう</rt></ruby> ： </label>
+        <select id="username"><option value=""> -- 番号を選んでください-- </option></select>
       </div>
       <div class="form-group">
-        <label for="password"><ruby>パスワード</ruby> ： </label>
-        <input type="password" id="password" placeholder="パスワードを入力">
+        <label for="password"><ruby>パスワード<rt>ぱすわーど</rt></ruby> ： </label>
+        <input type="password" id="password" placeholder="パスワードを入力" onkeypress="if(event.key === 'Enter') login()">
       </div>
-      <button onclick="login()"><ruby>ログイン</ruby></button>
+      <button onclick="login()"><ruby>ログイン<rt>ろぐいん</rt></ruby></button>
       <div class="loading">
         <div class="loading-spinner"></div>
         <p>読み込み中...</p>
@@ -1073,7 +1094,7 @@
     <div id="home-section" style="display: none;">
       <div class="header">
         <div id="user-info" class="user-info"></div>
-        <button onclick="logout()" class="logout-btn"><ruby>ログアウト</ruby></button>
+        <button onclick="logout()" class="logout-btn"><ruby>ログアウト<rt>ろぐあうと</rt></ruby></button>
       </div>
 
       <div class="savings-info">
@@ -1152,6 +1173,22 @@
       <div class="modal-button-container" style="display: flex; justify-content: space-around; margin-top: 20px;">
           <button onclick="manualRegisterBook()" class="modal-button" style="flex: 1; margin-right: 10px;">登録</button>
           <button onclick="hideManualRegisterModal()" class="modal-button" style="flex: 1; background-color: #ea4335;">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="scanner-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="max-width: 500px; width: 95%;">
+      <div class="modal-title">バーコードを読み取る</div>
+      <p style="font-size: 14px; color: #666;">本の裏の、上段のバーコード（978から始まるもの）をカメラに合わせてください。</p>
+      
+      <div id="reader"></div>
+      
+      <div id="scan-message" style="margin-bottom: 10px; height: 20px; color: red; font-size: 12px; min-height: 20px;"></div>
+
+      <div class="modal-button-container" style="display: flex; justify-content: space-around; margin-top: 10px;">
+        <button onclick="switchCamera()" class="modal-button" style="background-color: #f4b400;">🔄 カメラ切替</button>
+        <button onclick="stopScanner()" class="modal-button" style="background-color: #ea4335;">閉じる</button>
       </div>
     </div>
   </div>
